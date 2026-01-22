@@ -273,8 +273,16 @@ func (d *Device) SetMockFuncs() {
 	}
 
 	d.GetPciInfoFunc = func() (nvml.PciInfo, nvml.Return) {
+		if d.Config.PciInfo != nil {
+			return *d.Config.PciInfo, nvml.SUCCESS
+		}
+		//nolint:staticcheck
+		id := d.Config.PciDeviceId
+		if id == 0 {
+			return nvml.PciInfo{}, nvml.ERROR_NOT_SUPPORTED
+		}
 		p := nvml.PciInfo{
-			PciDeviceId: d.Config.PciDeviceId,
+			PciDeviceId: id,
 		}
 		return p, nvml.SUCCESS
 	}

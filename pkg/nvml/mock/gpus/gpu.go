@@ -18,8 +18,10 @@ type Config struct {
 	MemoryMB     uint64
 	CudaMajor    int
 	CudaMinor    int
-	PciDeviceId  uint32
-	MIGProfiles  MIGProfileConfig
+	//Deprecated: Use PciInfo directly
+	PciDeviceId uint32
+	PciInfo     *nvml.PciInfo
+	MIGProfiles MIGProfileConfig
 }
 
 // MIGProfileConfig contains MIG profile configuration for a GPU
