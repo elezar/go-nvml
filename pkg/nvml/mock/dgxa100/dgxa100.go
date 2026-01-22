@@ -18,79 +18,52 @@ package dgxa100
 
 import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/server"
 )
 
-// Server is a type alias for shared.Server maintained for backward compatibility.
+// Server is a type alias for server.Server maintained for backward compatibility.
 //
 // Deprecated: This type alias is maintained for backward compatibility only.
 // The type may be removed in a future version.
-type Server = shared.Server
+type Server = server.Server
 
-// Device is a type alias for shared.Device maintained for backward compatibility.
+// Device is a type alias for server.Device maintained for backward compatibility.
 //
 // Deprecated: This type alias is maintained for backward compatibility only.
 // The type may be removed in a future version.
-type Device = shared.Device
+type Device = server.Device
 
-// GpuInstance is a type alias for shared.GpuInstance maintained for backward compatibility.
+// GpuInstance is a type alias for server.GpuInstance maintained for backward compatibility.
 //
 // Deprecated: This type alias is maintained for backward compatibility only.
 // The type may be removed in a future version.
-type GpuInstance = shared.GpuInstance
+type GpuInstance = server.GpuInstance
 
-// ComputeInstance is a type alias for shared.ComputeInstance maintained for backward compatibility.
+// ComputeInstance is a type alias for server.ComputeInstance maintained for backward compatibility.
 //
 // Deprecated: This type alias is maintained for backward compatibility only.
 // The type may be removed in a future version.
-type ComputeInstance = shared.ComputeInstance
+type ComputeInstance = server.ComputeInstance
 
-// CudaComputeCapability is a type alias for shared.CudaComputeCapability maintained for backward compatibility.
+// CudaComputeCapability is a type alias for server.CudaComputeCapability maintained for backward compatibility.
 //
 // Deprecated: This type alias is maintained for backward compatibility only.
 // The type may be removed in a future version.
-type CudaComputeCapability = shared.CudaComputeCapability
+type CudaComputeCapability = server.CudaComputeCapability
 
 func New() *Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpus.A100_SXM4_40GB,
-		GPUCount:          8,
-		DriverVersion:     "550.54.15",
-		NvmlVersion:       "12.550.54.15",
-		CudaDriverVersion: 12040,
-	})
+	return NewWithGPUs(gpus.Multiple(8, gpus.A100_SXM4_40GB)...)
 }
 
-func NewDevice(index int) *Device {
-	return shared.NewDeviceFromConfig(gpus.A100_SXM4_40GB, index)
-}
-
-// NewServerWithGPU creates a new server with a specific A100 GPU variant.
-//
-// Deprecated: Use NewServerWithGPUs instead for more flexible configurations,
-// including support for heterogeneous GPU setups.
-func NewServerWithGPU(gpuConfig shared.Config) *Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpuConfig,
-		GPUCount:          8,
-		DriverVersion:     "550.54.15",
-		NvmlVersion:       "12.550.54.15",
-		CudaDriverVersion: 12040,
-	})
-}
-
-// NewDeviceWithGPU creates a new device with a specific A100 GPU variant.
-//
-// Deprecated: Use shared.NewDeviceFromConfig directly for device creation.
-func NewDeviceWithGPU(gpuConfig shared.Config, index int) *Device {
-	return shared.NewDeviceFromConfig(gpuConfig, index)
-}
-
-// NewServerWithGPUs creates a new server with heterogeneous GPU configurations
-// Example: NewServerWithGPUs(gpus.A100_SXM4_40GB, gpus.A100_SXM4_80GB, gpus.A100_SXM4_40GB)
-func NewServerWithGPUs(gpuConfigs ...shared.Config) *Server {
-	return shared.NewServerWithGPUs("550.54.15", "12.550.54.15", 12040, gpuConfigs...)
+func NewWithGPUs(gpus ...gpus.Config) *Server {
+	s, _ := server.New(
+		server.WithGPUs(gpus...),
+		server.WithDriverVersion("550.54.15"),
+		server.WithNVMLVersion("12.550.54.15"),
+		server.WithCUDADriverVersion(12040),
+	)
+	return s
 }
 
 // Legacy globals for backward compatibility - expose the internal data

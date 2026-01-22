@@ -18,12 +18,11 @@ package gpus
 
 import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared"
 )
 
 // A30 GPU Variants with different memory profiles and PCI device IDs
 var (
-	A30_PCIE_24GB = shared.Config{
+	A30_PCIE_24GB = Config{
 		Name:         "NVIDIA A30-PCIE-24GB",
 		Architecture: nvml.DEVICE_ARCH_AMPERE,
 		Brand:        nvml.BRAND_NVIDIA,
@@ -35,7 +34,7 @@ var (
 	}
 )
 
-var a30_24gb_MIGProfiles = shared.MIGProfileConfig{
+var a30_24gb_MIGProfiles = MIGProfileConfig{
 	GpuInstanceProfiles:       a30_24gb_GpuInstanceProfiles,
 	ComputeInstanceProfiles:   a30_ComputeInstanceProfiles,
 	GpuInstancePlacements:     a30_GpuInstancePlacements,

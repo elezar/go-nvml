@@ -18,44 +18,22 @@ package dgxh100
 
 import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/server"
 )
 
-func New() *shared.Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpus.H100_SXM5_80GB,
-		GPUCount:          8,
-		DriverVersion:     "550.54.15",
-		NvmlVersion:       "12.550.54.15",
-		CudaDriverVersion: 12040,
-	})
+func New() *server.Server {
+	return NewWithGPUs(gpus.Multiple(8, gpus.H100_SXM5_80GB)...)
 }
 
-func NewDevice(index int) *shared.Device {
-	return shared.NewDeviceFromConfig(gpus.H100_SXM5_80GB, index)
-}
-
-// NewServerWithGPU creates a new server with a specific H100 GPU variant
-func NewServerWithGPU(gpuConfig shared.Config) *shared.Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpuConfig,
-		GPUCount:          8,
-		DriverVersion:     "550.54.15",
-		NvmlVersion:       "12.550.54.15",
-		CudaDriverVersion: 12040,
-	})
-}
-
-// NewDeviceWithGPU creates a new device with a specific H100 GPU variant
-func NewDeviceWithGPU(gpuConfig shared.Config, index int) *shared.Device {
-	return shared.NewDeviceFromConfig(gpuConfig, index)
-}
-
-// NewServerWithGPUs creates a new server with heterogeneous GPU configurations
-// Example: NewServerWithGPUs(gpus.H100_SXM5_80GB, gpus.H200_SXM5_141GB)
-func NewServerWithGPUs(gpuConfigs ...shared.Config) *shared.Server {
-	return shared.NewServerWithGPUs("550.54.15", "12.550.54.15", 12040, gpuConfigs...)
+func NewWithGPUs(gpus ...gpus.Config) *server.Server {
+	s, _ := server.New(
+		server.WithGPUs(gpus...),
+		server.WithDriverVersion("550.54.15"),
+		server.WithNVMLVersion("12.550.54.15"),
+		server.WithCUDADriverVersion(12040),
+	)
+	return s
 }
 
 // Legacy globals for backward compatibility - expose the internal data

@@ -23,21 +23,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus"
 )
-
-// Compile-time interface checks
-var _ nvml.Interface = (*Server)(nil)
-var _ nvml.ExtendedInterface = (*Server)(nil)
 
 // TestServerCreation verifies server creation and basic properties
 func TestServerCreation(t *testing.T) {
 	server := New()
 	require.NotNil(t, server)
-
-	// Test interface compliance
-	require.Implements(t, (*nvml.Interface)(nil), server)
-	require.Implements(t, (*nvml.ExtendedInterface)(nil), server)
 
 	// Test device count
 	count, ret := server.DeviceGetCount()
@@ -534,7 +526,7 @@ func TestA100SpecificCharacteristics(t *testing.T) {
 // TestHeterogeneousGPUs verifies creation of servers with mixed GPU types
 func TestHeterogeneousGPUs(t *testing.T) {
 	// Create server with mix of A100 40GB and 80GB GPUs
-	server := NewServerWithGPUs(
+	server := NewWithGPUs(
 		gpus.A100_SXM4_40GB,
 		gpus.A100_SXM4_80GB,
 		gpus.A100_SXM4_40GB,
@@ -584,4 +576,3 @@ func TestHeterogeneousGPUs(t *testing.T) {
 	require.Equal(t, nvml.SUCCESS, ret)
 	require.Equal(t, uint32(0x20B510DE), pci3.PciDeviceId) // A100-PCIE-80GB
 }
-

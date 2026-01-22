@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package shared
+package server
 
 import (
 	"fmt"
@@ -24,38 +24,52 @@ import (
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/NVIDIA/go-nvml/pkg/nvml/mock"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus"
 )
+
+// Compile-time interface checks
+var _ nvml.Interface = (*Server)(nil)
+var _ nvml.ExtendedInterface = (*Server)(nil)
+
+type Option func(*options) error
+
+func New(opts ...Option) (*Server, error) {
+	o := &options{}
+	for _, opt := range opts {
+		if err := opt(o); err != nil {
+			return nil, err
+		}
+	}
+	// TODO: Check defaults and validity
+	return o.build(), nil
+}
+
+// NewServerFromConfig creates a new server from the provided configuration
+func (o *options) build() *Server {
+	devices := make([]nvml.Device, len(o.gpus))
+	for i, gpu := range o.gpus {
+		devices[i] = NewDeviceFromConfig(gpu, i)
+	}
+
+	server := &Server{
+		Devices:           devices,
+		DriverVersion:     o.DriverVersion,
+		NvmlVersion:       o.NvmlVersion,
+		CudaDriverVersion: o.CudaDriverVersion,
+	}
+	server.SetMockFuncs()
+	return server
+}
 
 // GBtoMB is a conversion constant from GB to MB (1 GB = 1024 MB)
 const GBtoMB = 1024
 
-// Config contains the minimal configuration needed for a GPU generation
-type Config struct {
-	Name         string
-	Architecture nvml.DeviceArchitecture
-	Brand        nvml.BrandType
-	MemoryMB     uint64
-	CudaMajor    int
-	CudaMinor    int
-	PciDeviceId  uint32
-	MIGProfiles  MIGProfileConfig
-}
-
-// ServerConfig contains the minimal configuration needed for a server
-type ServerConfig struct {
-	Config            Config
-	GPUCount          int
+// options contains the minimal configuration needed for a server
+type options struct {
+	gpus              []gpus.Config
 	DriverVersion     string
 	NvmlVersion       string
 	CudaDriverVersion int
-}
-
-// MIGProfileConfig contains MIG profile configuration for a GPU
-type MIGProfileConfig struct {
-	GpuInstanceProfiles       map[int]nvml.GpuInstanceProfileInfo
-	ComputeInstanceProfiles   map[int]map[int]nvml.ComputeInstanceProfileInfo
-	GpuInstancePlacements     map[int][]nvml.GpuInstancePlacement
-	ComputeInstancePlacements map[int]map[int][]nvml.ComputeInstancePlacement
 }
 
 // Server provides a reusable server implementation
@@ -72,15 +86,15 @@ type Server struct {
 type Device struct {
 	mock.Device
 	sync.RWMutex
-	Config                Config // Embedded configuration
-	UUID                  string
-	PciBusID              string
-	Minor                 int
-	Index                 int
-	MigMode               int
-	GpuInstances          map[*GpuInstance]struct{}
-	GpuInstanceCounter    uint32
-	MemoryInfo            nvml.Memory
+	Config             gpus.Config // Embedded configuration
+	UUID               string
+	PciBusID           string
+	Minor              int
+	Index              int
+	MigMode            int
+	GpuInstances       map[*GpuInstance]struct{}
+	GpuInstanceCounter uint32
+	MemoryInfo         nvml.Memory
 }
 
 // GpuInstance provides a reusable GPU instance implementation
@@ -90,7 +104,7 @@ type GpuInstance struct {
 	Info                   nvml.GpuInstanceInfo
 	ComputeInstances       map[*ComputeInstance]struct{}
 	ComputeInstanceCounter uint32
-	MIGProfiles            MIGProfileConfig
+	MIGProfiles            gpus.MIGProfileConfig
 }
 
 // ComputeInstance provides a reusable compute instance implementation
@@ -110,25 +124,8 @@ var _ nvml.Device = (*Device)(nil)
 var _ nvml.GpuInstance = (*GpuInstance)(nil)
 var _ nvml.ComputeInstance = (*ComputeInstance)(nil)
 
-// NewServerFromConfig creates a new server from the provided configuration
-func NewServerFromConfig(config ServerConfig) *Server {
-	devices := make([]nvml.Device, config.GPUCount)
-	for i := 0; i < config.GPUCount; i++ {
-		devices[i] = NewDeviceFromConfig(config.Config, i)
-	}
-
-	server := &Server{
-		Devices:           devices,
-		DriverVersion:     config.DriverVersion,
-		NvmlVersion:       config.NvmlVersion,
-		CudaDriverVersion: config.CudaDriverVersion,
-	}
-	server.SetMockFuncs()
-	return server
-}
-
 // NewServerWithGPUs creates a new server with heterogeneous GPU configurations
-func NewServerWithGPUs(driverVersion, nvmlVersion string, cudaDriverVersion int, gpuConfigs ...Config) *Server {
+func NewServerWithGPUs(driverVersion, nvmlVersion string, cudaDriverVersion int, gpuConfigs ...gpus.Config) *Server {
 	devices := make([]nvml.Device, len(gpuConfigs))
 	for i, config := range gpuConfigs {
 		devices[i] = NewDeviceFromConfig(config, i)
@@ -145,7 +142,7 @@ func NewServerWithGPUs(driverVersion, nvmlVersion string, cudaDriverVersion int,
 }
 
 // NewDeviceFromConfig creates a new device from the provided GPU configuration
-func NewDeviceFromConfig(config Config, index int) *Device {
+func NewDeviceFromConfig(config gpus.Config, index int) *Device {
 	device := &Device{
 		Config:             config,
 		UUID:               "GPU-" + uuid.New().String(),
@@ -161,7 +158,7 @@ func NewDeviceFromConfig(config Config, index int) *Device {
 }
 
 // NewGpuInstanceFromInfo creates a new GPU instance
-func NewGpuInstanceFromInfo(info nvml.GpuInstanceInfo, profiles MIGProfileConfig) *GpuInstance {
+func NewGpuInstanceFromInfo(info nvml.GpuInstanceInfo, profiles gpus.MIGProfileConfig) *GpuInstance {
 	gi := &GpuInstance{
 		Info:                   info,
 		ComputeInstances:       make(map[*ComputeInstance]struct{}),

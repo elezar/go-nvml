@@ -18,44 +18,26 @@ package dgxb200
 
 import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared"
-	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/internal/shared/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/gpus"
+	"github.com/NVIDIA/go-nvml/pkg/nvml/mock/server"
 )
 
-func New() *shared.Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpus.B200_SXM5_180GB,
-		GPUCount:          8,
-		DriverVersion:     "560.28.03",
-		NvmlVersion:       "12.560.28.03",
-		CudaDriverVersion: 12060,
-	})
+func New() *server.Server {
+	return NewWithGPUs(gpus.Multiple(8, gpus.B200_SXM5_180GB)...)
 }
 
-func NewDevice(index int) *shared.Device {
-	return shared.NewDeviceFromConfig(gpus.B200_SXM5_180GB, index)
+func NewWithGPUs(gpus ...gpus.Config) *server.Server {
+	s, _ := server.New(
+		server.WithGPUs(gpus...),
+		server.WithDriverVersion("560.28.03"),
+		server.WithNVMLVersion("12.560.28.03"),
+		server.WithCUDADriverVersion(12060),
+	)
+	return s
 }
 
-// NewServerWithGPU creates a new server with a specific B200 GPU variant
-func NewServerWithGPU(gpuConfig shared.Config) *shared.Server {
-	return shared.NewServerFromConfig(shared.ServerConfig{
-		Config:            gpuConfig,
-		GPUCount:          8,
-		DriverVersion:     "560.28.03",
-		NvmlVersion:       "12.560.28.03",
-		CudaDriverVersion: 12060,
-	})
-}
-
-// NewDeviceWithGPU creates a new device with a specific B200 GPU variant
-func NewDeviceWithGPU(gpuConfig shared.Config, index int) *shared.Device {
-	return shared.NewDeviceFromConfig(gpuConfig, index)
-}
-
-// NewServerWithGPUs creates a new server with heterogeneous GPU configurations
-// Example: NewServerWithGPUs(gpus.B200_SXM5_180GB, gpus.B200_SXM5_180GB, gpus.H200_SXM5_141GB)
-func NewServerWithGPUs(gpuConfigs ...shared.Config) *shared.Server {
-	return shared.NewServerWithGPUs("560.28.03", "12.560.28.03", 12060, gpuConfigs...)
+func NewDevice(index int) *server.Device {
+	return server.NewDeviceFromConfig(gpus.B200_SXM5_180GB, index)
 }
 
 // Legacy globals for backward compatibility - expose the internal data
